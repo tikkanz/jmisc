@@ -7,6 +7,7 @@ coinsert 'jzgrid'
 
 NB.! error handling needs improvement
 NB.! eg: what if name is invalid?
+NB.! use second try catch?
 gridpdestroy=: 3 : 0
   if. 0~:4!:0 <'CELLDNAME' do. 
     CELLDNAME=. 'celldata_ed' end.
