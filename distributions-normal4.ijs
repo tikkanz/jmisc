@@ -99,9 +99,8 @@ qnorm01=: 3 : 0
   v=. (p_high < z) *. z < 1
   q=. %: _2* ^. 1- v#z
   s=. (-(c p. q) % d p. q) (I.v)} s
-  NB.   equal to 0
+  NB.   equal to 0 or 1
   s=. __ (I. z=0)} s
-  NB.   equal to 1
   s=. _ (I. z=1)} s
   
   ($y)$s
