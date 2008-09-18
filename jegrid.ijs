@@ -5,29 +5,37 @@ script_z_ '~system/classes/grid/jzgrid.ijs'
 coclass 'jegrid'
 coinsert 'jzgrid'
 
-gridpdestroy=: 3 : 0
-  if. 0~:4!:0 <'CELLDNAME' do. 
-    CELLDNAME=. 'celldata_ed' end.
-  if. -. (-: cofullname) CELLDNAME do. NB. add default locale
-    CELLDNAME=. CELLDNAME,'__locD'
-  elseif. 1 e. '__' E. CELLDNAME do. NB. get referenced locale
+defineGrid=: 3 : 0
+  errmsg=.''
+  if. 0=4!:0 <'CELLDNAME' do.
+    cdname=. CELLDNAME 
+  else. NB. CELLDNAME not defined
+    cdname=. 'celldata_ed' 
+  end.
+  if. -. (-: cofullname) cdname do. NB. add default locale
+    cdname=. cdname,'__locD'
+  elseif. 1 e. '__' E. cdname do. NB. get referenced locale
     try.
-      idx=. _2 { I. '_' = CELLDNAME
-      loc=. >((CELLDNAME }.~ 2+idx),'__locD')~
-      CELLDNAME=: (idx{.CELLDNAME),'_',loc,'_'
+      idx=. _2 { I. '_' = cdname
+      loc=. >((cdname }.~ 2+idx),'__locD')~
+      cdname=. (idx{.cdname),'_',loc,'_'
     catch. NB. locale reference not found
-      CELLDNAME=. (idx{.CELLDNAME),'__locD'
+      cdname=. (idx{.cdname),'__locD'
       errmsg=. 0{::<;._2 ]13!:12 ''
-      errmsg=. errmsg,LF,'|Grid defined in ',(idx{.CELLDNAME),'_',(>locD),'_'
+      errmsg=. errmsg,LF,'|Grid defined in ',(idx{.cdname),'_',(>locD),'_'
     end.
   end.
-  try. (CELLDNAME)=. CELLDATA__grid
+  try. (cdname)=. CELLDATA__grid
   catch. NB. ill-formed name
     ('celldata_ed__locD')=. CELLDATA__grid
     errmsg=. 0{::<;._2 ]13!:12 ''
     errmsg=. errmsg,LF,'|Grid defined in celldata_ed','_',(>locD),'_'
   end.
-  smoutput errmsg
+  if. #errmsg do. smoutput errmsg end.
+)
+
+gridpdestroy=: 3 : 0
+  defineGrid''
   wd 'pclose'
   destroy__grid''
   codestroy''
@@ -49,9 +57,9 @@ NB.       Defaults to celldata_ed.
 NB.       Grid option name is CELLDNAME.
 editgrid_z_=: 3 : 0
   (0 0$0) editgrid y
-:
+  :
   if. (2>#$x) *. 2= 3!:0 x do.
-  x=. ,:'CELLDNAME';x end.
+    x=. ,:'CELLDNAME';x end.
   opts=. x,,:'CELLEDIT';1
   opts=. opts,'GRIDESCCANCEL';1
   (opts;coname'') egridp_jegrid_ y
