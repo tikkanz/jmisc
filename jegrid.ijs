@@ -5,24 +5,29 @@ script_z_ '~system/classes/grid/jzgrid.ijs'
 coclass 'jegrid'
 coinsert 'jzgrid'
 
-NB.! error handling needs improvement
-NB.! eg: what if name is invalid?
-NB.! use second try catch?
 gridpdestroy=: 3 : 0
   if. 0~:4!:0 <'CELLDNAME' do. 
     CELLDNAME=. 'celldata_ed' end.
   if. -. (-: cofullname) CELLDNAME do. NB. add default locale
     CELLDNAME=. CELLDNAME,'__locD'
   elseif. 1 e. '__' E. CELLDNAME do. NB. get referenced locale
-    idx=. _2 { I. '_' = CELLDNAME
-    loc=. >((ref=.(2+idx)}.CELLDNAME),'__locD')~
-    try. CELLDNAME=: (idx{.CELLDNAME),'_',loc,'_'
-    catch. NB. reference not found
+    try.
+      idx=. _2 { I. '_' = CELLDNAME
+      loc=. >((CELLDNAME }.~ 2+idx),'__locD')~
+      CELLDNAME=: (idx{.CELLDNAME),'_',loc,'_'
+    catch. NB. locale reference not found
       CELLDNAME=. (idx{.CELLDNAME),'__locD'
-      smoutput ref,'__',(>locD),' not found, grid defined in ',(idx{.CELLDNAME),'_',(>locD),'_'
+      errmsg=. 0{::<;._2 ]13!:12 ''
+      errmsg=. errmsg,LF,'|Grid defined in ',(idx{.CELLDNAME),'_',(>locD),'_'
     end.
   end.
-  (CELLDNAME)=. CELLDATA__grid
+  try. (CELLDNAME)=. CELLDATA__grid
+  catch. NB. ill-formed name
+    ('celldata_ed__locD')=. CELLDATA__grid
+    errmsg=. 0{::<;._2 ]13!:12 ''
+    errmsg=. errmsg,LF,'|Grid defined in celldata_ed','_',(>locD),'_'
+  end.
+  smoutput errmsg
   wd 'pclose'
   destroy__grid''
   codestroy''
