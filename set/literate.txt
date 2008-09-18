@@ -1,0 +1,7 @@
+Literate Programmimg from http://www.jsoftware.com/jwiki/Scripts/Set_Game
+
+setengine.ijs
+setplaybmp.ijs
+setcardsbmp.ijs
+setplaygl2.ijs
+setcardsgl2.ijs
