@@ -129,7 +129,6 @@ defn  =:  adverb define
 )
 
 
-
 NB.  ===========     EXAMPLE SECTION    =========== 
 NB.  Define a parameterized verb.  A noun-define is used to create the default parameter table,
 NB.  to enhance readability.
