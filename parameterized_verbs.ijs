@@ -2,17 +2,13 @@ NB. http://www.jsoftware.com/svn/DanBron/trunk/environment/parameterized_verbs.i
 NB.  ===========  DEPENDENCY SECTION  =========== 
 require 'strings'  NB. 'strings' is for 'deb'
 
+coclass 'ddp'
+
 NB.  ===========    UTILITY SECTION   =========== 
 NB.  Conjunction that takes a noun LHA and a dyadic verb RHA.
 NB.  Derived verb is ambivalent; if no LHA specified, the conjunction's LHA
 NB.  is used.
-cocurrent new =. 'ddp' [ original =. coname''
 defaultLHA    =:  2 : 'm&$: : v'  NB. [.&$: : ].
-
-NB.  Cut on an arbitrary-length fret.
-NB.  EG:  ' hello ' arbCut 'hi hello how hello are hello you hello today' NB.  Returns ;: 'hi how are you today'
-ac     =:  [ (E. <;.1 ]) ,
-arbCut =:  <@:#@:[ }.&.> ac f.
 
 NB.  Another translate conjuction, only for scalars.  Replace the scalar LHA to the conjunction with the scalar RHA to the conjunction.
 NB.  EG.  0 scalarReplace _1 ] 5 8 0 0 5 6 0 3 0 4  NB. Returns 5 8 _1 _1 5 6 _1 3 _1 4
@@ -27,17 +23,12 @@ beginsWith    =:  ,^:(0: -: #@:$)@:] -: ({.~ #)    NB.  ([ -: ({.~ #)~)
 NB.*makeParamTable v Make a name-value pair table from a LF-and-'=' delimited noun.
 NB. The characters preceding the first '=' on each line become the name
 NB. and the characters trailing the same are executed to produce the value.
-makeParamTable=:  ((deb@:{. ,&:< ".@:}.@}.)~ i.&'=')&>@:(LF&arbCut)@:(TAB sr ' ')@:}:
+makeParamTable=:  ((deb@:{. ,&:< ".@:}.@}.)~ i.&'=')&>@:(LF&splitstring)@:(TAB sr ' ')@:}:
 
 NB.  ===========     LOGIC SECTION    =========== 
-NB.*normalizeInput v Box the input iff it's not boxed and it's not null.  
-NB. This way it's convenient to pass in one parameter, or
-NB.  none, just allowing all the defaults to take effect.
-normalizeInput=.  <^:(# 2 b.&* L.)
-
 NB.*isList v Determines if the input's rank is at least 2.  
 NB.  That is, if it's 'less than' a table.
-isList        =.  2&>@:#@:$@:]
+isList        =.  2 > #@$@]
 
 NB.*paramListToTable v Stiches on the first N parameter names to the input list 
 NB.  (where N = # list),  allowing the user to pass in a list of parameters 
@@ -63,7 +54,7 @@ NB.*combineMaps v If two parameters have the same name, use the first one, but o
 NB.  (names specified in the default table).  This allows the user's parameters to over-ride 
 NB.  the defaults, without allowing him to define names the function isn't expecting 
 NB.  (which could possibly over-ride global names the function needs to access).
-combineMaps     =:  ([ ({."1@:[ ,. i.~&normalizeNames { }."1@:]) (appendDefaults normalizeInput)) f.
+combineMaps     =:  ([ ({."1@:[ ,. i.~&normalizeNames { }."1@:]) (appendDefaults boxxopen)) f.
 
 defineAndDefaultParams  =:  conjunction define
 NB.  The input to this conjunction is a noun RHA and a explicit monadic verb LHA.
@@ -103,18 +94,18 @@ NB.  used in its entirety, with no caller-defined values.
 
      NB.  Apply createParameterTable to y (the input to u)
 	 newHeading =.  'NB.  Create parameter name/value table from input and default table.'
-     newHeading =.  newHeading , CRLF , 'params =. x (', (5!:5<'createParameterTable') , ') y'
+     newHeading =.  newHeading , LF , 'params =. x (', (5!:5<'createParameterTable') , ') y'
 
      NB.  Define some local names from the parameter table we just created.
-     newHeading =.  newHeading , CRLF , 'NB.  From the parameter name/value input table, define local names from column 0 to values from column 1'
-     newHeading =.  newHeading , CRLF , '(, (,. ,&''_is_default''&.>) {."1 params) =. , }."1 params'
+     newHeading =.  newHeading , LF , 'NB.  From the parameter name/value input table, define local names from column 0 to values from column 1'
+     newHeading =.  newHeading , LF , '(, (,. ,&''_is_default''&.>) {."1 params) =. , }."1 params'
 
      NB.  Erase the noun 'params', so we don't interfere with globals of that name.
-     newHeading =.  newHeading , CRLF , 'NB.  Erase the noun ''params'', so we don''t interfere with globals of that name.'
-     newHeading =.  newHeading , CRLF , '4!:55 ,<''params'''
+     newHeading =.  newHeading , LF , 'NB.  Erase the noun ''params'', so we don''t interfere with globals of that name.'
+     newHeading =.  newHeading , LF , '4!:55 ,<''params'''
 
      NB.  Drop off the trailing ')' (or '''') from u, add our new heading, and output the redefined verb.
-     n defaultLHA (4 : (<;._2 toJ newHeading, CRLF, CRLF, ,&CRLF^:(LF&~:@:{:) _1 }. verbBody))
+     n defaultLHA (4 : (<;._2 toJ newHeading, LF, LF, ,&LF^:(LF&~:@:{:) _1 }. verbBody))
    else.
      NB.  If u isn't an explicit monadic verb, don't do anything to it.
      u
@@ -132,7 +123,7 @@ defn  =:  adverb define
 NB.  ===========     EXAMPLE SECTION    =========== 
 NB.  Define a parameterized verb.  A noun-define is used to create the default parameter table,
 NB.  to enhance readability.
-parameterizedVerb   =:  verb defn
+parameterizedVerb__   =:  verb defn
   filename    =  'c:\short.log'
   max         =  42
   color       =  'red'
@@ -178,5 +169,17 @@ NB.  Supply new default parameter table.
 
 
 NB.  ===========     EXPORT SECTION    =========== 
-('`','ddp mpt defn'([:,,&.>/)&.;:'_z_') =: (;:'defineAndDefaultParams makeParamTable defn'),L:0'_'([,],[)new
-cocurrent original
+
+export2z=: 3 : 0
+  y export2z y
+:
+  znmes=.  x([:,,&.>/)&.;:'_z_'
+  ynmes=.  (;:y),L:0'_'([,],[)>coname''
+  (znmes)=: ynmes
+  empty''
+)
+
+'ddp mpt defn' export2z 'defineAndDefaultParams makeParamTable defn'
+
+NB. ('ddp mpt defn'([:,,&.>/)&.;:'_z_') =: (;:'defineAndDefaultParams makeParamTable defn'),L:0'_'([,],[)>coname''
+
