@@ -39,7 +39,7 @@ dnorm01=: (% %: 2p1) * ^@:(_0.5 * *:)
 
 NB. error function
 erf=: (*&(%:4p_1)%^@:*:)*[:1 H. 1.5*:    NB. A&S 7.1.21 (right)
-erfc=: >:@-@erf
+erfc=: >:@-@erf  NB. complementary error function
 
 Note 'pnorm01'
 
@@ -52,7 +52,7 @@ pnorm01 achieves a maximum absolute error of less than 7.46e_8 over the argument
 range (_5,5) and less than 0.2 percent relative error.
 )
 
-pnorm01S=: [: -: 1: + [: erf %&(%:2) f.
+pnorm01S=: ([: -: 1: + [: erf %&(%:2)) f.
 
 NB.*pnorm01 v Standard normal CDF
 pnorm01=: 3 : 0
