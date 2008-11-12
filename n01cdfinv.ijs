@@ -10,6 +10,8 @@ NB.
 NB.* vftxt    v  numeric vector from text string
 NB.* ratpoly  c  rational polynomial approximation
 NB.
+coclass 'pnormal'
+
 
 vftxt=. 0". ];._2
 ratpoly=. 2 : 'm&p. % (1,n)&p.'
@@ -116,23 +118,6 @@ n01cdfinv=: (__"0 ` _: `nd @. in01)"0 f.
 
 ndx=: 3 : 0
   s=. ($y)$0
-  
-  msk=. (SPLIT1 < |@qfp) y  NB. is pretty close to 0 or 1?
-  st=. nd1 (-.msk)#y          NB. not close to 0 or 1
-  s=. st (I.-.msk)}s
-  
-  st=. r2fp msk#y             NB. pretty close to 0 or 1
-  msk2=. st > SPLIT2          NB. is really close to 0 or 1?
-  st2=. nd2fr (-.msk2)#st       NB. not really close to 0 or 1
-  st=. st2 (I. -.msk2)}st
-  st2=. nd3fr msk2#st           NB. really close to 0 or 1
-  st=. st2 (I. msk2)}st
-  st=. (st * *@qfp) msk#y
-  s=. st (I. msk)}s
-)
-
-ndx2=: 3 : 0
-  s=. ($y)$0
   msk=. (SPLIT1 < |@qfp) y  NB. is pretty close to 0 or 1?
   s=. (nd1 (-.msk)#y) (I.-.msk)}s  NB. not close to 0 or 1
   st=. r2fp msk#y                  NB. pretty close to 0 or 1
@@ -143,7 +128,7 @@ ndx2=: 3 : 0
   s=. st (I. msk)}s
 )
 
-
+NB. explicit translation of tacit version
 n01cdfinvx=: 3 : 0
   z=. ,y
   tst=. (>&0 * 1 + <&1) z
@@ -153,63 +138,10 @@ n01cdfinvx=: 3 : 0
   ($y)$z
 )
 
-n01cdfinvx1=: 3 : 0
-  z=. ,y
-  tst=. (0&= ,. 1&= ,. 1&> *. 0&<) z
-  assert. +./"1 tst  NB. y outside meaningful bounds
-  tst=. ,I. tst
-  z=. tst}__,_,:z  NB. not in-place operation
-  n=. ndx (msk=. 2 = tst)#z
-  z=. n (I. msk)}z NB. amend values to s
-  ($y)$z
-)
-
-n01cdfinvx2=: 3 : 0
-  z=. ,y
-  msk=. (0&< *. 1&>) z     NB. between 0 & 1
-  assert. msk +. z e. 0 1  NB. y outside meaningful bounds
-  s=. ($z)$_   NB. initialise result array
-  b=. 0 = z
-  s=. b}s,:__  NB. in-place operation
-  n=. ndx msk#z
-  s=. n (I. msk)}s NB. amend values to s
-  ($y)$s
-)
-
-n01cdfinvx3=: 3 : 0
-  z=. ,y
-  msk=. (0&< *. 1&>) z     NB. between 0 & 1
-  assert. msk +. z e. 0 1  NB. y outside meaningful bounds
-  n=. ndx msk#z
-  s=. ($z)$0       NB. initialise result array
-  s=. n (I. msk)}s NB. amend values to s
-  s=. __ (I. z=0)} s
-  s=. _ (I. z=1)} s
-  ($y)$s
-)
-
-n01cdfinvx3b=: 3 : 0
-  z=. ,y
-  msk=. (0&< *. 1&>) z     NB. between 0 & 1
-  assert. msk +. z e. 0 1  NB. y outside meaningful bounds
-  z=. __ (I. z=0)} z
-  z=. _ (I. z=1)} z
-  n=. ndx2 msk#z
-  z=. n (I. msk)}z   NB. amend values to z
-  ($y)$z
-)
+NB. all the rest signal error if y outside 0-1 inclusive.
+NB. ie. should give similar answer to qnorm01S
 
 n01cdfinvx3a=: 3 : 0
-  z=. ,y
-  msk=. (0&< *. 1&>) z     NB. between 0 & 1
-  assert. msk +. z e. 0 1  NB. y outside meaningful bounds
-  z=. __ (I. z=0)} z
-  z=. _ (I. z=1)} z
-  z=. (ndx2 msk#z) (I. msk)}z NB. amend values to z
-  ($y)$z
-)
-
-n01cdfinvx3c=: 3 : 0
   z=. ,y
   msk=. (0&< *. 1&>) z     NB. between 0 & 1
   assert. msk +. z e. 0 1  NB. y outside meaningful bounds
@@ -219,13 +151,47 @@ n01cdfinvx3c=: 3 : 0
   ($y)$z
 )
 
-n01cdfinvx3d=: 3 : 0
+n01cdfinvx3b=: 3 : 0
   z=. ,y
   msk=. (0&< *. 1&>) z     NB. between 0 & 1
   assert. msk +. z e. 0 1  NB. y outside meaningful bounds
   z=. __ (I. z=0)} z
   z=. _ (I. z=1)} z
   n=. ndx msk#z
-  z=. n (I. msk)}z NB. amend values to z
+  z=. n (I. msk)}z   NB. amend values to z
   ($y)$z
+)
+
+NB. =========================================================
+NB. Export to z
+
+n01cdfinv_z_=: n01cdfinv_pnormal_
+n01cdfinvx3b_z_=: n01cdfinvx3b_pnormal_
+
+NB. =========================================================
+NB. Testing
+Note 'Tests'
+  load '~user\usercontrib\distributions-normal4.ijs'
+  ts=: 6!:2 , 7!:2@]
+  tsterr=: 0 0.6 0.3 1.1
+  tst=:  0 1 0.158655253931457 0.977249868051821 2.86651571879194e_7 0.5 0.4 0.85 0.72 0.11
+  tst1=: 10000$tst
+  tst2=: 100000$ 2}.tst
+  n01cdfinv tsterr     NB. outside 0-1 is __ or _
+  n01cdfinvx3b tsterr  NB. should be assertion failure
+  (n01cdfinvx3b -: n01cdfinv) tst
+  NB. sizes of differences between answers that are not equal
+  ([: (n01cdfinvx3b - qnorm) ] #~ [: -. n01cdfinvx3b = qnorm) tst
+  ([: (n01cdfinvx3b - qnorm01S_pnormal_) ] #~ [: -. n01cdfinvx3b = qnorm01S_pnormal_) tst
+
+  50 ts 'n01cdfinv tst1'
+  50 ts 'n01cdfinvx3b tst1'
+  50 ts 'qnorm tst1'
+  50 ts 'qnorm01_pnormal_ tst1'
+  50 ts 'qnorm01S_pnormal_ tst1'
+  5  ts 'n01cdfinv tst2'
+  5  ts 'n01cdfinvx3b tst2'
+  5  ts 'qnorm tst2'
+  5  ts 'qnorm01_pnormal_ tst2'
+  5  ts 'qnorm01S_pnormal_ tst2'
 )
