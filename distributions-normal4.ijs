@@ -110,7 +110,6 @@ NB.*qnorm01S v Refinement of qnorm01, slower
 NB. only necessary if very high accuracy required
 qnorm01S=: 3 : 0
   z=. ,y
-  s=. ($z)$0
   s=. qnorm01 z  
   
   NB. Refinement using Halley's rational method
