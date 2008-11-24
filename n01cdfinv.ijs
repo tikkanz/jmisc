@@ -2,18 +2,16 @@ NB. N(0,1) inverse cdf
 NB. Translated from  http://lib.stat.cmu.edu/apstat/241
 NB. Ewart Shaw 1-Nov-2006  last modified 6-Nov-2006
 NB. http://www.jsoftware.com/jwiki/EwartShaw/N01CdfInv
+NB. Added non-rank 0 explicit versions
+NB. Ric Sherlock Nov-2008
 NB. =========================================================
 
-NB. =========================================================
-NB. Utilities (inserted for completeness)
-NB.
-NB.* vftxt    v  numeric vector from text string
-NB.* ratpoly  c  rational polynomial approximation
 NB.
 coclass 'pnormal'
 
-
+NB. vftxt v numeric vector from text
 vftxt=. 0". ];._2
+NB. ratpoly c rational polynomial approximation
 ratpoly=. 2 : 'm&p. % (1,n)&p.'
 
 NB. =========================================================
@@ -102,8 +100,6 @@ F=. vftxt 0 : 0
 ratEF=. E ratpoly F
 
 qfp=: -&0.5
-test1=. SPLIT1 < |@qfp  NB. pretty close to 0 or 1
-test2=. >&SPLIT2        NB. really close to 0 or 1
 r1fq=. CONST1 - *:
 r2fp=: [: %:@:-@:^. ] <. -.
 
@@ -111,24 +107,32 @@ nd1=: (] * ratAB@r1fq)@qfp f.
 nd2fr=: (ratCD@-&CONST2)  f.
 nd3fr=: (ratEF@-&SPLIT2)  f.
 
+NB. ---------------------------------------------------------
+NB. verbs in this section only required for original tacit version
+test1=. SPLIT1 < |@qfp  NB. pretty close to 0 or 1
+test2=. >&SPLIT2        NB. really close to 0 or 1
 nd=. nd1 ` (*@qfp * (nd2fr`nd3fr @. test2)@r2fp) @. test1
 
 in01=. >&0 * 1 + <&1   NB. test for y in range
 n01cdfinv=: (__"0 ` _: `nd @. in01)"0 f.
 
+NB. ---------------------------------------------------------
+NB. Explicit versions - faster, (not rank 0)
+
+NB.ndx v explicit version of tacit nd above
 ndx=: 3 : 0
   s=. ($y)$0
-  msk=. (SPLIT1 < |@qfp) y  NB. is pretty close to 0 or 1?
-  s=. (nd1 (-.msk)#y) (I.-.msk)}s  NB. not close to 0 or 1
-  st=. r2fp msk#y                  NB. pretty close to 0 or 1
-  msk2=. st > SPLIT2        NB. is really close to 0 or 1?
-  st=. (nd2fr (-.msk2)#st) (I. -.msk2)}st NB. not really close to 0 or 1
-  st=. (nd3fr    msk2 #st)   (I. msk2)}st NB. really close to 0 or 1
+  msk=. (SPLIT1 < |@qfp) y  NB. is y pretty close to 0 or 1?
+  s=. (nd1 (-.msk)#y) (I.-.msk)}s  NB. no
+  st=. r2fp msk#y                  NB. yes pretty close
+  msk2=. st > SPLIT2        NB. is y really close to 0 or 1?
+  st=. (nd2fr (-.msk2)#st) (I. -.msk2)}st NB. no
+  st=. (nd3fr    msk2 #st)   (I. msk2)}st NB. yes very close
   st=. (st * *@qfp) msk#y
   s=. st (I. msk)}s
 )
 
-NB. explicit translation of tacit version
+NB. n01cdfinvx v explicit equivalent of tacit version
 n01cdfinvx=: 3 : 0
   z=. ,y
   tst=. (>&0 * 1 + <&1) z
@@ -138,7 +142,8 @@ n01cdfinvx=: 3 : 0
   ($y)$z
 )
 
-NB. all the rest signal error if y outside 0-1 inclusive.
+NB. explicit translations of tacit version but signal error
+NB. if y outside 0-1 inclusive.
 NB. ie. should give similar answer to qnorm01S
 
 n01cdfinvx3a=: 3 : 0
@@ -151,6 +156,7 @@ n01cdfinvx3a=: 3 : 0
   ($y)$z
 )
 
+NB.*n01cdfinvx3b v fastest,leanest explicit version of n01cdfinv
 n01cdfinvx3b=: 3 : 0
   z=. ,y
   msk=. (0&< *. 1&>) z     NB. between 0 & 1
@@ -161,6 +167,9 @@ n01cdfinvx3b=: 3 : 0
   z=. n (I. msk)}z   NB. amend values to z
   ($y)$z
 )
+
+
+
 
 NB. =========================================================
 NB. Export to z
