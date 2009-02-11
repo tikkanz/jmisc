@@ -13,11 +13,11 @@ nRev=. 3    NB. number of boxes needed for reversal
 nMaxCols=. 125
 nMaxRows=. 50    NB. this can affect value of "nBox" if calculated by formula
 nShowDate=. 1    NB. flag to display dates or not
-sFname=. jpath '~home\downloads\table(2).csv'
+sFname=. jpath '~temp\DJIA20072008.csv'
 
 NB. initialize variables:
 nCurrCol=. 0
-sSymb=. 'ox'
+sSymb=. 'OX'
 nLastMonthPlotted=. 0
 nLastYearPlotted=. 0
 nRowOffset=. 0
@@ -29,10 +29,12 @@ sChart=. (nMaxRows,nMaxCols) $ ' '    NB. chart array
 
 NB. read in (Yahoo) market data file and pull out date/high/low/close values:
 'bHdr bMktData'=. split readcsv sFname
-bMktData=. |. bMktData NB. downloads from Yahoo have newest data at top
 nDate=.  getdate"1 > (bHdr i. <'Date') {"1 bMktData   NB. column 0 is date (format: yyyy-mm-dd)
-nHighLow=. makenum (bHdr i. 'High';'Low') {"1 bMktData
-nClose=. makenum (bHdr i. <'Close') {"1 bMktData  NB. only used for working out start direction
+NB. if newest data always at top could just |. bMktData
+nOrder=. /: nDate  NB. sort order
+nDate=. nDate /: nOrder
+nHighLow=. nOrder /:~ makenum (bHdr i. 'High';'Low') {"1 bMktData
+nClose=. nOrder /:~ makenum (bHdr i. <'Close') {"1 bMktData  NB. only used for working out start direction
 NB. could now erase bMktData to save space
 
 NB. two ways chart range might be done --
@@ -47,11 +49,11 @@ nChartHigh=. 14500    NB. midpoint = 10750, nBox = 150
 
 for_i. i. #nDate do.
   'nYr nMn nDy'=.  i { nDate
-  sMonth=. (<:nMn) { '123456789abc'
+  sMonth=. (<:nMn) { '123456789ABC'
 
   nLowHigh=.  |. i { nHighLow NB. reverse order so low is index 0
 
-  assert. (nLowHigh > nChartHigh) *. nLowHigh < nChartLow
+  assert. (nLowHigh < nChartHigh) *. nLowHigh > nChartLow
   NB.  smoutput 'Data for ',(": i { bDate),' exceeded chart range'
   nLowHigh=. nLowHigh - nChartLow
 
@@ -115,3 +117,4 @@ NB. flip chart array so that smallest coords are at lower left
 NB. rather than at upper left:
 sChart=. |. sChart
 )
+   
