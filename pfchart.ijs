@@ -1,45 +1,40 @@
-require 'files dates tables/csv'
+require 'files dates tables/csv grid'
+
+Note 'example'
+  pfgrid pfchartrgs ''
+)
+
+pfgrid=: (2 2$'GRIDMARGIN';0 0 0 0;'GRIDZOOM';0.5) grid <"0
 
 pfchartrgs=: 3 : 0
-
-NB. constants (should be input by user instead?):
+NB. constants (should be input by user instead):
 nBox=. 150    NB. size of charting box (related to nMaxRows below))
-nRevBoxes=. 3    NB. number of boxes needed for reversal
-nMaxColumns=. 125
+nRev=. 3    NB. number of boxes needed for reversal
+nMaxCols=. 125
 nMaxRows=. 50    NB. this can affect value of "nBox" if calculated by formula
 nShowDate=. 1    NB. flag to display dates or not
+sFname=. jpath '~home\downloads\table(2).csv'
 
 NB. initialize variables:
-nBoxHigh=. 0
-nBoxLow=. 0
-nHigh=. 0
-nLow=. 0
-nClose=. 0
-nNewHigh=. 0
-nNewLow=. 0
 nCurrCol=. 0
-sColType=. 1
-sSymbol=. 'OX'
+sSymb=. 'ox'
 nLastMonthPlotted=. 0
 nLastYearPlotted=. 0
-nYr=. 0
-nMn=. 0
-sMonth=. ''
 nRowOffset=. 0
 
-if. nShowDate do.
-  nRowOffset=. 4  NB. 4 extra rows needed for 4 vertical digits of year
-  nMaxRows=. nMaxRows + nRowOffset
-end.
+NB. 4 extra rows needed for 4 vertical digits of year
+if. nShowDate do. nRowOffset=. 4 end.
+nMaxRows=. nMaxRows + nRowOffset
+sChart=. (nMaxRows,nMaxCols) $ ' '    NB. chart array
 
-sChart=. (nMaxRows,nMaxColumns) $ ' '    NB. chart array
+NB. read in (Yahoo) market data file and pull out date/high/low/close values:
+'bHdr bMktData'=. split readcsv sFname
+bMktData=. |. bMktData NB. downloads from Yahoo have newest data at top
+nDate=.  getdate"1 > (bHdr i. <'Date') {"1 bMktData   NB. column 0 is date (format: yyyy-mm-dd)
+nHighLow=. makenum (bHdr i. 'High';'Low') {"1 bMktData
+nClose=. makenum (bHdr i. <'Close') {"1 bMktData  NB. only used for working out start direction
+NB. could now erase bMktData to save space
 
-NB. read in (Yahoo) market data file and cull out date/high/low/close values:
-NB. bMktData=. readcsv (jpath '~user\data\DJI-r-pf.csv')
-'bHdr bMktData'=. split readcsv jpath '~home\downloads\table(2).csv'
-bMktData=. |. bMktData
-bDate=.  getdate"1 > 0 {"1 bMktData   NB. column 0 is date (format: yyyy-mm-dd)
-'bHigh bLow bClose'=. <"1 |: makenum 2 3 4 {"1 bMktData
 NB. two ways chart range might be done --
 NB.   (1) look for max and min of prices (nBox = (max-min)/boxsize),
 NB. or
@@ -50,143 +45,73 @@ NB. for testing purposes (DJIA 2007-2008):
 nChartLow=. 7000
 nChartHigh=. 14500    NB. midpoint = 10750, nBox = 150
 
-for_i. i. <:#bMktData do.
-
-  'nYr nMn nDy'=.  i { bDate
+for_i. i. #nDate do.
+  'nYr nMn nDy'=.  i { nDate
   sMonth=. (<:nMn) { '123456789abc'
 
-  nHigh=.  (i { bHigh) - nChartLow
-  nLow=.   (i { bLow)  - nChartLow
-  nClose=. (i { bClose) - nChartLow
+  nLowHigh=.  |. i { nHighLow NB. reverse order so low is index 0
 
-  if. (nChartHigh < (i { bHigh)) +. nLow < 0 do.
-    sChart=. |. sChart
-    smoutput 'Data for ',(": i { bDate),' exceeded chart range'
-    return.
-  end.
+  assert. (nLowHigh > nChartHigh) *. nLowHigh < nChartLow
+  NB.  smoutput 'Data for ',(": i { bDate),' exceeded chart range'
+  nLowHigh=. nLowHigh - nChartLow
 
   NB. (initialize starting point of chart in the first column)
-  NB. is this the first entry?
-  if. i = 0 do.
+  if. i = 0 do.   NB. is this the first entry?
+    nClose=. (i { nClose) - nChartLow
+    nColType=. nClose >: -: --/ nLowHigh
+    nLHBox=. <. nLowHigh % nBox
 
-    sColType=. nClose >: ((nHigh - nLow) % 2)
-NB.    nOldVal=. 
-    nNewLow=. nBoxHigh=. <. (nLow % nBox)
-    nBoxLow=. nNewHigh=. <. (nHigh % nBox)
-    b=. i. >: (<. nHigh % nBox) - (<. nLow % nBox)
-    NB.      sColType (< (nRowOffset + nBoxLow - b);nCurrCol) } sChart
-    sChart=. sColType (< (nRowOffset + nBoxHigh + b);nCurrCol) } sChart 
+    b=. i. >: --/ nLHBox
+    sChart=. (nColType{sSymb) (< (nRowOffset + b + {.nLHBox);nCurrCol) } sChart
 
-    if. nShowDate *. nYr ~: nLastYearPlotted do.
-        sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart        
-        nLastYearPlotted=. nYr
+    nOldVal=. nColType { nLHBox
+
+    if. nShowDate do.
+      sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart
+      nLastYearPlotted=. nYr
     end.
 
   else.    NB. the following is the normal (i.e., non-first) procedure:
 
     NB. convert prices to boxes:
-    nNewHigh=. <. (nHigh % nBox)
-    nNewLow=. <. (nLow % nBox)
+    nLHBox=. <. nLowHigh % nBox
+    nNewDiffs=. (-`+@.nColType) nLHBox - nOldVal
 
+    NB. new high or low?
+    if. nChg=. 1 <: ({.`{:@.nColType) nNewDiffs do.
+      nNewVal=. nColType { nLHBox
 
-    if. sColType -: 'X' do. NB. currently upward?
+    NB. no new high or low, so test for reversal:
+    elseif. nChg=. nRev <: ({:`{.@.nColType) -nNewDiffs do.
+      nCurrCol=. >: nCurrCol
+      nColType=. -.nColType
+      nNewVal=. nColType { nLHBox
+    end.
 
-      if. nNewHigh < nBoxHigh do. NB. new high?
-
-        b=. 1 + i. nNewHigh-nBoxHigh
-        sChart=. sColType (< (nBoxHigh+b+nRowOffset);nCurrCol) } sChart
-
-        if. nShowDate *. nMn ~: nLastMonthPlotted do.
-          sChart=. sMonth (< (nBoxHigh+1+nRowOffset);nCurrCol) } sChart
-          nLastMonthPlotted=. nMn
-          if. (nMn = 1) *. nYr ~: nLastYearPlotted do.
-            sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart
-            nLastYearPlotted=. nYr
-          end.
+    if. nChg do. NB. Does sChart need updating?
+      NB. update Os & Xs
+      b=. (* * >:@i.) nNewVal - nOldVal
+      sChart=. (nColType{sSymb) (< (nRowOffset + nOldVal + b);nCurrCol) } sChart
+      
+      NB. update Dates if necessary
+      if. nShowDate *. nMn ~: nLastMonthPlotted do.
+        b=. nColType { _1 1
+        sChart=. sMonth (< (nRowOffset + nOldVal + b);nCurrCol) } sChart
+        nLastMonthPlotted=. nMn
+        if. (nMn = 1) *. nYr ~: nLastYearPlotted do.
+          sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart
+          nLastYearPlotted=. nYr
         end.
-        nBoxHigh=. nNewHigh
-        nBoxLow=. nBoxHigh - 1    NB. for drawing purposes, 1 box below highest 'X'
-
-      NB. no new high, so test for downside reversal:
-      elseif. nRevBoxes <: nBoxHigh - nNewLow do.
-
-        if. nCurrCol < nMaxColumns-1 do.
-          nCurrCol=. >: nCurrCol
-        else.
-          sChart=. |. sChart
-          return.
-        end.
-        sColType=. 'O'  NB. nOCol
-        b=. i. >: nBoxLow-nNewLow
-        sChart=. sColType (< ((nBoxLow-b)+nRowOffset);nCurrCol) } sChart
-
-        if. nShowDate *. nMn ~: nLastMonthPlotted do.
-          sChart=. sMonth (< ((nBoxLow-2)+nRowOffset);nCurrCol) } sChart
-          nLastMonthPlotted=. nMn
-          if. (nMn = 1) *. nYr ~: nLastYearPlotted do.
-            sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart
-            nLastYearPlotted=. nYr
-          end.
-        end.
-        nBoxLow=. nNewLow
-        nBoxHigh=. nBoxLow + 1    NB. for drawing purposes, 1 box above lowest 'O'
-
       end.
 
-
-    else. NB. current direction downward (sColType is 'O')
-
-      if. nBoxLow < nNewLow do.  NB. new low?
-
-        b=. >: i. nBoxLow-nNewLow
-        sChart=. sColType (< ((nBoxLow-b)+nRowOffset);nCurrCol) } sChart
-
-        if. nShowDate *. nMn ~: nLastMonthPlotted do.
-          sChart=. sMonth (< ((nBoxLow-1)+nRowOffset);nCurrCol) } sChart
-          nLastMonthPlotted=. nMn
-          if. (nMn = 1) *. nYr ~: nLastYearPlotted do.
-            sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart
-            nLastYearPlotted=. nYr
-          end.
-        end.
-        nBoxLow=. nNewLow
-        nBoxHigh=. nBoxLow + 1    NB. for drawing purposes, 1 box above lowest 'O'
-
-      NB. no new low, so test for upside reversal:
-      elseif. nRevBoxes <: nNewHigh - nBoxLow do.
-
-        if. nCurrCol < nMaxColumns-1 do.
-          nCurrCol=. >: nCurrCol
-        else.
-          sChart=. |. sChart
-          return.
-        end.
-        sColType=. 'X' NB. nXCol
-        b=. i. >: nNewHigh-nBoxHigh
-        sChart=. sColType (< (nBoxHigh+b+nRowOffset);nCurrCol) } sChart
-
-        if. nShowDate *. nMn ~: nLastMonthPlotted do.
-          sChart=. sMonth (< (nBoxHigh+2+nRowOffset);nCurrCol) } sChart
-          nLastMonthPlotted=. nMn
-          if. (nMn = 1) *. nYr ~: nLastYearPlotted do.
-            sChart=. (":nYr) (< (i.-nRowOffset);nCurrCol) } sChart
-            nLastYearPlotted=. nYr
-          end.
-        end.
-        nBoxHigh=. nNewHigh
-        nBoxLow=. nBoxHigh - 1    NB. for drawing purposes, 1 box below highest 'X'
-
-      end.
-
-    end. NB. O/X loop
+      nOldVal=. nNewVal
+      nChg=.0
+    end.
 
   end. NB. "first/rest" loop
-
 end.  NB. "for" loop
 
 NB. flip chart array so that smallest coords are at lower left
 NB. rather than at upper left:
 sChart=. |. sChart
 )
-
-NB. #################################################################
