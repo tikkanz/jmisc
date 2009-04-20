@@ -117,4 +117,3 @@ NB. flip chart array so that smallest coords are at lower left
 NB. rather than at upper left:
 sChart=. |. sChart
 )
-   
