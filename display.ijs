@@ -1,4 +1,4 @@
-cocurrent 'rgtVisual'
+coclass 'rgtVisual'
 NB. ---------------------------------------------------------
 NB. This script creates a form that takes tacit sentences
 NB. entered by the user in a text box and displays the
@@ -7,18 +7,14 @@ NB. ---------------------------------------------------------
 
 DISPLAY=: 0 : 0
 pc display dialog;
-xywh 386 330 44 12;cc cancel button leftmove topmove rightmove
-bottommove;cn "Close";
-xywh 9 309 317 22;cc box edit topmove rightmove bottommove;
-xywh 343 24 60 11;cc rbFormatBox radiobutton leftmove rightmove;cn "Box Format";
-xywh 344 40 60 11;cc rbFormatLinear radiobutton leftmove rightmove
-group;cn "Linear Format";
-xywh 344 55 60 11;cc rbFormatTree radiobutton leftmove rightmove
-group;cn "Tree Format";
-xywh 344 72 60 11;cc rbFormatParen radiobutton leftmove rightmove group;cn "Paren Format";
-xywh 333 11 95 80;cc format groupbox leftmove rightmove;cn "Display Style";
-xywh 0 0 326 299;cc tdisp listbox ws_hscroll ws_vscroll
-lbs_multiplesel rightmove bottommove;
+xywh 291 167 44 12;cc cancel button leftmove topmove rightmove bottommove;cn "Close";
+xywh 9 156 216 22;cc box edit topmove rightmove bottommove;
+xywh 248 24 60 11;cc rbFormatBox radiobutton leftmove rightmove;cn "Box Format";
+xywh 248 40 60 11;cc rbFormatLinear radiobutton leftmove rightmove group;cn "Linear Format";
+xywh 248 55 60 11;cc rbFormatTree radiobutton leftmove rightmove group;cn "Tree Format";
+xywh 248 72 60 11;cc rbFormatParen radiobutton leftmove rightmove group;cn "Paren Format";
+xywh 240 11 95 80;cc format groupbox leftmove rightmove;cn "Display Style";
+xywh 0 0 225 150;cc tdisp listbox ws_hscroll ws_vscroll lbs_multiplesel rightmove bottommove;
 pas 6 6;pcenter;
 rem form end;
 )
@@ -27,15 +23,21 @@ NB. ---------------------------------------------------------
 NB. form creation
 NB. ---------------------------------------------------------
 
+NB. box=: 'NB. Function here'
+
 display_run=: 3 : 0
 wd DISPLAY
-wd 'setfont box ',FIXFONT,';setfocus box;set box "+/%#";'
+wd 'set box "',y,'";'
+wd 'setfont box ',FIXFONT,';setfocus box;'
 wd 'setfont tdisp ',FIXFONT,'; setenable tdisp 1;'
 wd 'set rbFormatBox 1;'
 RBFORMAT=: 'rbFormat'&,&.> ;:'Box Tree Linear Paren'
-box=: uucp '+/%#'              NB. set default display directly
-update ''
+update y
 wd 'pshow;'
+)
+
+display_close=: 3 : 0
+  wd'pclose'
 )
 
 NB. ---------------------------------------------------------
@@ -45,9 +47,11 @@ NB. ---------------------------------------------------------
 display=: 3 : 0
 try.
    wd 'psel display;'
-   update ''
+   if. 0=#y do. y=. box end.
+   wd 'set box "',y,'";'
+   update y
 catch.
-   display_run''          NB. create form
+   display_run y          NB. create form
 end.
 )
 
@@ -57,12 +61,12 @@ NB. ---------------------------------------------------------
 
 update=: 3 : 0
 try.
-   sidx=: {. 2 4 5 6 2 {~ I. 99".> RBFORMAT wdget wdq 
-   ".'ZZZ=: ' , box NB. ZZZ is a global dummy that holds the tacit entry
-   NB.wd 'set tdisp *',;(<"1 ": STYLE < 'ZZZ'), each LF
-   wd 'set tdisp *', ,LF,~"1 utf8@ucpboxdraw_jijs_"1 ": sidx style <'ZZZ'
-   catch.
-   wd 'set tdisp *', 'Not a valid tacit expression'
+  sidx=. {. 2 4 5 6 2 {~ I. 99".> RBFORMAT wdget wdq 
+  ".'ZZZ=. ' , y NB. ZZZ is a global dummy that holds the tacit entry
+  NB.wd 'set tdisp *',;(<"1 ": STYLE < 'ZZZ'), each LF
+  wd 'set tdisp *', ,LF,~"1 utf8@ucpboxdraw_jijs_"1 ": sidx style <'ZZZ'
+  catch.
+  wd 'set tdisp *',13!:12 ''
 end.
 )
 
@@ -70,18 +74,16 @@ NB. ---------------------------------------------------------
 NB. event controls for objects on the text form
 NB. ---------------------------------------------------------
 
-display_close=: 3 : 0
-wd'pclose'
-)
 
 display_cancel_button=: display_close
 
-display_box_button=: update
-display_rbFormatLinear_button=: update
-display_rbFormatBox_button=: update
-display_rbFormatTree_button=: update
-display_rbFormatParen_button=: update
+display_box_button=: display
+display_rbFormatLinear_button=: display
+display_rbFormatBox_button=: display
+display_rbFormatTree_button=: display
+display_rbFormatParen_button=: display
 
 style=: 5!:
+display_z_=: display_rgtVisual_
 
-display_run ''
+NB. display ''
