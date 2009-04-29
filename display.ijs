@@ -6,7 +6,7 @@ NB. selected format in a listbox.
 NB. ---------------------------------------------------------
 
 DISPLAY=: 0 : 0
-pc display dialog;
+pc display closeok dialog;
 xywh 291 167 44 12;cc cancel button leftmove topmove rightmove bottommove;cn "Close";
 xywh 9 156 216 22;cc box edit topmove rightmove bottommove;
 xywh 248 24 60 11;cc rbFormatBox radiobutton leftmove rightmove;cn "Box Format";
@@ -32,6 +32,7 @@ wd 'setfont box ',FIXFONT,';setfocus box;'
 wd 'setfont tdisp ',FIXFONT,'; setenable tdisp 1;'
 wd 'set rbFormatBox 1;'
 RBFORMAT=: 'rbFormat'&,&.> ;:'Box Tree Linear Paren'
+NB.if. 0 ~: 4!:0 <'wdq' do. wdq=: '' end.
 update y
 wd 'pshow;'
 )
@@ -61,7 +62,8 @@ NB. ---------------------------------------------------------
 
 update=: 3 : 0
 try.
-  sidx=. {. 2 4 5 6 2 {~ I. 99".> RBFORMAT wdget wdq 
+  sidx=. {. 2 4 5 6 2 {~ I. 99".> RBFORMAT wdget wd'qd' 
+  NB.sidx=. {.RBFORMAT (2 4 5 6 2 {~ 99 I.@:". >@:wdget) :: 2: wdq
   ".'ZZZ=. ' , y NB. ZZZ is a global dummy that holds the tacit entry
   NB.wd 'set tdisp *',;(<"1 ": STYLE < 'ZZZ'), each LF
   wd 'set tdisp *', ,LF,~"1 utf8@ucpboxdraw_jijs_"1 ": sidx style <'ZZZ'
