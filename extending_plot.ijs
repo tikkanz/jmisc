@@ -1,8 +1,11 @@
+NB.Integrate this into the existing wiki page:
+NB.http://www.jsoftware.com/jwiki/Plot/Extensibility
+
 == Combining Existing Plot Types ==
 
-These two forum threads (<<link|thread one>><<link|thread two>>) 
+These two forum threads ([[JForum:general/2008-November/032550|thread one]] [[JForum:programming/2008-November/012978|thread two]]) 
 explored a number of methods of representing an Open, High, Low, Close or
-<<http://www.amcharts.com/stock/ohlc-chart/|OHLC plot>>.
+[[http://www.amcharts.com/stock/ohlc-chart/|OHLC plot]].
 
 Data often in this form:
 {{{
@@ -144,7 +147,7 @@ plot_hilomarker=: 3 : 0
 
 === hilo and floating bar ===
 An alternative representation for OHLC data is the filled/hollow 
-<<http://stockcharts.com/school/doku.php?id=chart_school:chart_analysis:what_are_charts|candlesticks chart>>.
+[[http://stockcharts.com/school/doku.php?id=chart_school:chart_analysis:what_are_charts|candlesticks chart]].
 
 A pretty good similie of a candlestick chart can be created
 by combining a hilo plot with a floating bar. However because the
@@ -186,9 +189,9 @@ lbls=: ;:^:_1 (8!:0 lbl) (<:lbl=.(>:i.10)*50%10)} 50#<'""'
 == Creating new plot types ==
 
 The Plot framework is quite modular and it is relatively easy to 
-extend by creating new plot types. In <<link|this forum post>>, 
-OlegKobchenko provided the following code for registering a 
-new plot type. Two examples were also provided including an OHLC plot.
+extend it by creating new plot types. In [[JForum:programming/2008-November/013010|this forum post]], 
+OlegKobchenko provided code for registering a new plot type. 
+Two new plot types were developed as examples including an OHLC plot.
 
 {{{
 require 'plot'
@@ -226,6 +229,8 @@ plot_hilo2=: 3 : 0
   end.
 )
 
+(;:'PlotTypes2d') typereg 'hilo2'
+
 plot_ohlc=: 3 : 0
   'x y'=. getgrafxy y
   'r c'=. $y
@@ -244,8 +249,6 @@ plot_ohlc=: 3 : 0
 )
 
 (;:'PlotTypes2d') typereg 'ohlc'
-(;:'PlotTypes2d') typereg 'hilo2'
-
 
 Note 'End-user code'
    HLCO=: (0 3 1 2&{@/:~)"1&.|: 4 30 ?.@$ 100
@@ -253,10 +256,6 @@ Note 'End-user code'
    'hilo2' plot 3{.HLCO
    'hilo2' plot    HLCO
 
-  NB. Get data
-  load 'csv'
-  fn=. jpath '~system\examples\data\dm0396.txt'
-  data=: 0". >4{.}.|: readcsv fn
   'ohlc' plot _50{."1 data
   'ohlc;pensize 2;markersize 2' plot _15{."1 data
   'ohlc' plot _100{."1 data
