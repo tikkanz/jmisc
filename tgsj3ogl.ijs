@@ -5,7 +5,6 @@ NB. revise 7/15/3
 NB. revise 11/20/5
 NB. revise 6/6/6
 NB. revise 12/18/6 replace eye 1000's with 6's on 249, 1964, 2309
-NB. need to fix eyeto ******************
 
 NB. key turtle commands              ***************
 NB. yw     yaw turtle(s) clockwise
@@ -17,12 +16,13 @@ NB. ju     jump turtle(s) upward
 NB. jr     jump turtle(s) n the 90 degrees right direction
 NB. goto   move turtle(s) to position(s)
 NB. home   move turtle(s) to original position(s)
-NB. eyeto  move eye(s) to position(s) and alter its(their) gaze
+NB. eyeto  move eye to position and alter its gaze
 NB. pu     change penstate(s) to up
 NB. pd     change penstate(s) to down
 NB. pc     change the pencolor(s)
 NB. cs     clear the drawing screen
-NB. iTS    initialize the turtle population 
+NB. iTS    initialize the turtle population
+NB. re     reset eye to snap position
 
 require 'opengl'
 
@@ -39,24 +39,22 @@ gsgenlist=: 3 : 0
   r
 )
 
-gscharJAVA_jzopenglutil_=: 3 : 0
-  key=. Jout {~ Jin i. {. sysdata
-  ('1' = {.sysmodifiers) gskey key
-  EyeQ =: 1   NB. Flag for programmed eye movement
-  gspaint''
-)
+GS_POSITION_jzopenglutil_ =: 1 1 1 1
+
+gspaint_jzopenglutil_ =: 3 : 'if. paintQ do. GS_PAINTER~'''' end.'
+paintQ =: 0
 
 gskey_jzopenglutil_=: 4 : 0
   select. y
   case. 33;34 do.
     ((x { 1 5) * GS_SPEED*GS_UNITROT gschgsign y=34) gsfly GS_VIEWXYZ
-    DIR =: 0
+    DIR =: 2
   case. 37;39 do.
     ((x { 1 5) * GS_SPEED*GS_UNITROT gschgsign y=37) gsfly GS_VIEWUP
     DIR =: 1
   case. 38;40 do.
     ((x { 1 5) * GS_SPEED*GS_UNITROT gschgsign y=40) gsfly GS_VIEWXYZ gscross GS_VIEWUP
-    DIR =: 2
+    DIR =: 0
   case. 88;89;90 do.
     b=. y=88 89 90
     (b i. 1) gsrotate GS_SPEED*GS_UNITROT * b gschgsign x
@@ -69,15 +67,22 @@ gskey_jzopenglutil_=: 4 : 0
   EyeQ =: 1   NB. Flag for programmed eye movement
 )
 
-
-gstranslate_jzopenglutil_=: 3 : 'TRNXYZ =: GS_TRNXYZ=: GS_TRNXYZ + y'
-gszoom_jzopenglutil_=: 3 : 'VIEWXYZ =: GS_VIEWXYZ=: GS_VIEWXYZ * y'
-
 gsfly_jzopenglutil_=: 4 : 0
   DEGREE =: x
   ROT =: rot=. (rfd x) gsrotxyz y
-  VIEWXYZ=: GS_VIEWXYZ=: rot gsmp GS_VIEWXYZ
+  GS_VIEWXYZ=: rot gsmp GS_VIEWXYZ
   GS_VIEWUP=: rot gsmp GS_VIEWUP
+)
+
+gsrotate_jzopenglutil_=: 3 : 0
+  DIR =: {:GS_ROTNDX
+  DEGREE =: -DIR{y
+  tmp =. (GS_VIEWXYZ gscross GS_VIEWUP),GS_VIEWUP,:GS_VIEWXYZ
+  ROT =: (rfd DEGREE) gsrotxyz DIR{tmp
+  GS_ROTXYZ=: 360 | GS_ROTXYZ + y
+  :
+  if. x ~: {:GS_ROTNDX do. gsflip x end.
+  gsrotate y
 )
 
 gssnap_jzopenglutil_=: 3 : 0
@@ -85,14 +90,14 @@ gssnap_jzopenglutil_=: 3 : 0
   j=. gspack j,' GS_UNITROT GS_UNITSTEP GS_UNITSCALE'
   GS_STATE1=: j,'He0';He0  NB. added initial Heading to list
   if. y=0 do. GS_STATE0=: j ,'He0';eye Heading end. NB. a noop?
-  empty''
+    empty''
 )
 
 gspdef_jzopenglutil_=: 3 : 0
   if. 0 e. $y do. empty'' return. end.
   names=. {."1 y
   if. #names do. (names)=: {:"1 y end.
-  
+
   NB. added for synchronizing turtle database
   Heading =: He0 Eye}Heading
   heading =. , allRot rfd ,:He0
@@ -111,6 +116,7 @@ gspdef_jzopenglutil_=: 3 : 0
 
 glaGetMatrix =: 3 : 'r[glGetFloatv  y;r =. 16#0.1'
 
+NB. usage: gluAtLook |:_4]\glaGetMatrix GL_MODELVIEW
 gluAtLook_jzopenglutil_=:3 :0
   eye=. -3 7 11 {,y %. y*-.(i.4 4)e.3 7 11
   scale=.+/&.:*: eye
@@ -118,6 +124,8 @@ gluAtLook_jzopenglutil_=:3 :0
   center=. eye-scale*nf
   eye,center,up
 )
+
+re =: reseteye =: 3 : 'empty[gspaint gspdef GS_STATE1'
 
 NB. show   report the state of the turtle(s)
 NB. delay  change to slow or speed up drawings
@@ -217,7 +225,9 @@ help =: 0 : 0
   NB. above works but destroys keystroke gldemo commands
   NB.      an open problem may be related to 'repeats'
 
-  Eye goto 0 0 4 NB. does not always work. Press F4 and try again
+  Eye goto 0 0 4 
+  0.1 0 0 eyeto 0 0 4
+  re''    NB. returns Eye to its snap position
 )
 
 cocurrent 'bmsturtle3'           NB. give system its own locale
@@ -255,10 +265,6 @@ NB. verbs for drawing lines and rotating turtles
 tfd =: turtlefromdegrees =: rfd @: (360&|)@:(90&+)  @: -
 dft =: degreesfromturtle =: 360&| @: dfr @: (-@:(-&(pi%2)))
 dfd =: degreesfromdegrees =: 360&|&.(180&-)
-
-NB. xyzfrhu =: rhufxyz =: |."1
-xyzfrhu =: rhufxyz =: ]
-xyzfrhu =: rhufxyz =: |.
 
 NB. perspective drawing              ***************
 vfp =: }:%{:             NB. vector from projection
@@ -553,18 +559,18 @@ turn =: adverb define
   if. eye y 
   do. 
     H =. +/&.:*: GS_VIEWXYZ
-    S =.   sin rfd -: eye D
-    C =. - cos rfd -: eye D
+    S =.   sin rfd -: eye-D
+    C =.   cos rfd -: eye-D
     dsh =. +:H*S
     select. type
     case. 0 do. 
       (-eye D) gsfly GS_VIEWXYZ
     case. 1 do. 
-      (eye D) gsfly GS_VIEWUP
-      gstranslate dsh*C,0,S
+      (-eye D) gsfly GS_VIEWUP
+      gstranslate dsh*C,0,0
     case. 2 do. 
       (eye D) gsfly GS_VIEWXYZ gscross GS_VIEWUP 
-      gstranslate dsh*S,C,0
+      gstranslate dsh*0,C,0
     end.
   end.
 
@@ -572,7 +578,7 @@ turn =: adverb define
 
   NB. update user's information
   tmp =. 360|(y+ Row col oldH) Row col A} oldH
-  'Heading';Heading =: dfd tmp
+  'Heading';rnd Heading =: dfd tmp
   :
   type =. m
   if. (1=#y) *. (State neqQ ~.x)
@@ -626,7 +632,7 @@ advance =: adverb define
 
   paint ''
   NB. update user's information
-  'Position';Position =: state  'Position'
+  'Position';rnd Position =: state  'Position'
   :
   dir =. m
   if. (1=#y) *. (State neqQ ~.x)
@@ -833,10 +839,8 @@ eyeto =: verb define
   0 0 0 eyeto y
   :
   Eye goto y
+  Eye turnto x
   EyeGazesAt =: ,: x
-  GS_VIEWXYZ =: y
-  1 gsfly GS_VIEWXYZ
-  paint ''
 )
 
 NB.* home v returns the turtle(s)' Position(s)
@@ -865,8 +869,8 @@ if. y-:'' do.
   y =. Eye -.~ i. #State
 end. 
 y =. ,~. y
-if. ((#State)<:>./y) do. 
-  'Supply only turtle values between 0 and ',(":<:#State),' .' 
+if. ((#State)<:>:>./y) do. 
+  'Supply only turtle values between 0 and ',(":<:<:#State),' .' 
   return. 
 end.
 
@@ -892,8 +896,8 @@ if. y-:'' do.
   y =. Eye -.~ i. #State
 end. 
 y =. ,~. y
-if. ((#State)<:>./y) do. 
-  'Supply only turtle values between 0 and ',(":<:#State),' .' 
+if. ((#State)<:>:>./y) do. 
+  'Supply only turtle values between 0 and ',(":<:<:#State),' .' 
   return. 
 end.
 
@@ -1254,31 +1258,6 @@ OPENGL=: 0 : 0
 )
 
 tgsj3D_run=: 3 : 0
-if. wdisparent 'tgsj3D'do.
-  wd'psel tgsj3D;pactive'
-  wh__ogl=: ''
-  target__ogl ''
-  paint''
-else.
-  GS_CLEARCOLOR=: gscolor4 (,Bkgrd,0)
-  GS_COLOR =: Pen
-  LISTS =: i. 0
-  PARTS =: i. 0
-  PARTSSTART =: 2000
-
-  wd OPENGL
-  wdmove _1 0
-  ogl=: ''conew'jzopengl'
-  gsinit GS_LIGHT
-  QUADS=: {.>gluNewQuadric''
-  tgsj_run''
-  glCallLists |.LISTS;GL_UNSIGNED_INT;#LISTS
-  gsfini ''
-  wd'pshow;'
-end.
-)
-
-tgsj3D_run=: 3 : 0
 GS_CLEARCOLOR=: gscolor4 (,Bkgrd,0)
 wd OPENGL
 wdmove _1 0
@@ -1287,9 +1266,12 @@ wd'setfocus g'
 wd'pcenter;pshow;'
 gsinit GS_LIGHT
 Init''
+QUADS=: {.>gluNewQuadric''
+if. y do. firsttime'' end.
+gssnap 1
+glCallLists |.LISTS;GL_UNSIGNED_INT;#LISTS
 gsfini''
 smoutput 'Type "help" to see some examples to try.'
-
 )
 
 opengl_close=: 3 : 0
@@ -1393,7 +1375,7 @@ NB. main graphics update verbs       ***************
 
 paint =: monad define
   wd'psel opengl;pactive'
-  if. gsinit GS_LIGHT do. tgsj_run'' end.
+  if. gsinit GS_LIGHT do. initLists <:#State end.
 
   drawpathlist =. (-.{.),/DrawPathList
   if. # drawpathlist do.
@@ -1422,18 +1404,18 @@ paint =: monad define
   if. #DrawPathList do. glCallList 1 end.
 
   if. EyeQ
-  do. 
-    Heading =:  DEGREE (<Eye,DIR)}Heading
+  do.
+    DEGREE =: dfd DEGREE+(<Eye,2-DIR){Heading
+    Heading =:  DEGREE (<Eye,2-DIR)}Heading
     heading =. ,ROT gsmp 3 3$eye state 'Heading'
     State =: heading (;/Eye,. SN aindex 'Heading')}State
-    position =. VIEWXYZ- TRNXYZ
+    position =. GS_VIEWXYZ- GS_TRNXYZ
     Position =: position Eye}Position
-    State =: position(;/Eye,.SN aindex'Position')}State  
+    State =: position(;/Eye,.SN aindex'Position')}State
   end.
   gsfini''
-    VIEWXYZ =: TRNXYZ =: 3#0
-    DEGREE =: 0
-    ROT =: GS_ID3
+  DEGREE =: 0
+  ROT =: GS_ID3
 )
 
 drawpath =: monad define
@@ -1472,6 +1454,7 @@ drawsetup =: dyad define
 cs =: clearscreen =: monad define
 temp =. state 'Turtlestate'
 (0:"0 temp) state 'Turtlestate' NB. set all to 0
+gspdef GS_STATE1
 DrawPathList =: i. 0 0
 paint''
 temp state 'Turtlestate' NB. set all back
@@ -1985,6 +1968,30 @@ testdlls=: 3 : 0
   'All OK.'
 )
 
+firsttime =: monad define
+  iTS 2
+  pu''
+  0 1 goto 0 0 0,:250 _200 0
+  1 rt 90
+  Turtlecolor =: Red 0}Turtlecolor
+  Turtlecolor state 'Turtlecolor'
+  TheTurtle =: whichTurtle 1
+  TID =: ": 0
+  HEADCOLOR =: LIME
+  states =. 0&{ each state each;:'Position Heading Turtlecolor'
+  'POSITION HEADING TURTLECOLOR' =: states
+  POSITION =: POSITION * Step_scale
+  makeanyTurtle RED
+
+  pd''
+  H0 =: Heading 
+  P0 =: Position
+  State0 =: State
+  NB. paintQ=:1
+  NB. gspaint''
+  Headpoly =: ,: {.state 'Heading'  NB.  needed for poly3 initialization
+)
+
 Init =: monad define
   GS_CLEARCOLOR=: gscolor4 (,Bkgrd,0)
   GS_COLOR =: Pen
@@ -1993,154 +2000,80 @@ Init =: monad define
   PARTSSTART =: 2000
   LTurtlepath =: 1
   EyeQ =: 0   NB. Flag for programmed eye movement
-  VIEWXYZ =: TRNXYZ =: 3#0
+  gspdef GS_STATE1
   DIR =: DEGREE =: 0
   ROT =: GS_ID3
-
-  QUADS=: {.>gluNewQuadric''
-  tgsj_run''
-  gssnap 1
-  glCallLists |.LISTS;GL_UNSIGNED_INT;#LISTS
 )
 
+initLists =: monad define
+  glDeleteLists (>:PARTSSTART);#PARTS
+  LTheTurtle =.  i. 0
+  LHead =.  i. 0
+  LLeftforearm =.  i. 0
+  LRightforearm =.  i. 0
+  LLeftupperarm =.  i. 0
+  LRightupperarm =.  i. 0
+  LTurtlehead =.  i. 0
+  LLeftleg =.  i. 0
+  LRightleg =.  i. 0
+  LLeg =.  i. 0
+  LShoe =.  i. 0
 
-tgsj_run =: 3 : 0
-NB. testdlls ''
-Delay =: 0  NB. initialize wd 'timer'
+  for_j. i. y
+  do.
+    LTheTurtle =. LTheTurtle,' '&, 'LTheTurtle',": j
+    LHead =. LHead,' '&, 'LHead',": j
+    LLeftforearm =. LLeftforearm,' '&, 'LLeftforearm',": j
+    LRightforearm =. LRightforearm,' '&, 'LRightforearm',": j
+    LLeftupperarm =. LLeftupperarm,' '&, 'LLeftupperarm',": j
+    LRightupperarm =. LRightupperarm,' '&, 'LRightupperarm',": j
+    LLeftleg =. LLeftleg,' '&, 'LLeftleg',": j
+    LRightleg =. LRightleg,' '&, 'LRightleg',": j
+    LLeg =. LLeg,' '&, 'LLeg',": j
+    LShoe =. LShoe,' '&, 'LShoe',": j
+    LTurtlehead =. LTurtlehead,' '&, 'LTurtlehead',": j
+  end.
 
-NumTs =. 3
-H0 =: 3 3$0 0 0 0 90 0 0 0 _90
+  (''"_) makelist LTurtlepath ''
+  genpartslist LTheTurtle
+  genpartslist LHead
+  genpartslist LLeftforearm
+  genpartslist LRightforearm
+  genpartslist LLeftupperarm
+  genpartslist LRightupperarm
+  genpartslist LLeftleg
+  genpartslist LRightleg
+  genpartslist LLeg
+  genpartslist LShoe
+  genpartslist LTurtlehead
 
-NB. initialize shell State database
-State0 =: State =: 0$~NumTs,#StateNames
-SampleTvalues state each BasicTnames
-Heading =: H0
-Eye =: 2               NB. add one turtle for the eye
-eye =: Eye&{           NB. must always be changed after Eye
-Pe0 =: eye P0
-He0 =: eye H0
-EyeGazesAt =: ,:0 0 0
+  genpartslist Partsnames
+  forearm makelist FOREARM ''
+  upperarm  makelist UPPERARM ''
+  torso  makelist TORSO ''
+  shoulder  makelist SHOULDER ''
+  neck  makelist NECK ''
+  skirt  makelist SKIRT ''
 
-StereoFlag =: 0
+  turtles =. i. |y
+  localnames =. 'position turtlecolor turtletrait turtletype'
+  localvalues =. state each ;:'Position Turtlecolor Turtletrait Turtletype'
+  (localnames) =. localvalues
+  heading =. (mfv0 state 'Heading')
+  rightArg =.  heading
+  leftArg =.  position;turtlecolor;turtletrait;turtletype
 
-NB. revise user info
-(BasicTnames) =: state each BasicTnames
-Heading =: H0
-
-NB. initialize special user info
-heading =. ,"_1 allRot rfd Heading
-heading state 'Heading'
-P0 =: Position
-State0 =: State 
-
-NB. initialize shell SC database
-NB. SC0 =: SC =: StateChange =: 0$~ NumTs,0,#StateChangeNames
-SC0 =: SC =: StateChange =: $. 0$~ NumTs,0,#StateChangeNames
-
-NB. initialize shell drawing database
-DrawPathList =: i. (#Eye),0 ,6++/#&> (<SN) aindex each ;:'Pencolor Pensize Penstyle'
-
-
-NB. if. #PARTS do. try. glDeleteLists (<./PARTS),#PARTS catch. smoutput PARTS end. end.
-NB. if. y do.  tgsj3D_run '' end.
-
-NB. LTurtle =. i. 0 
-LTheTurtle =.  i. 0
-LLeftforearm =.  i. 0
-LRightforearm =.  i. 0
-LLeftupperarm =.  i. 0
-LRightupperarm =.  i. 0
-LLeftleg =.  i. 0
-LRightleg =.  i. 0
-LTurtlehead =.  i. 0
-LShoe =.  i. 0
-LLeg =.  i. 0
-LHead =.  i. 0
-
-for_j. i. 2
-do.
-  LTheTurtle =. LTheTurtle,' '&, 'LTheTurtle',": j
-  LHead =. LHead,' '&, 'LHead',": j
-  LLeftforearm =. LLeftforearm,' '&, 'LLeftforearm',": j
-  LRightforearm =. LRightforearm,' '&, 'LRightforearm',": j
-  LLeftupperarm =. LLeftupperarm,' '&, 'LLeftupperarm',": j
-  LRightupperarm =. LRightupperarm,' '&, 'LRightupperarm',": j
-  LTurtlehead =. LTurtlehead,' '&, 'LTurtlehead',": j
-  LLeftleg =. LLeftleg,' '&, 'LLeftleg',": j
-  LRightleg =. LRightleg,' '&, 'LRightleg',": j
-  LLeg =. LLeg,' '&, 'LLeg',": j
-  LShoe =. LShoe,' '&, 'LShoe',": j
-end.
-
-(''"_) makelist LTurtlepath ''
-genpartslist LTheTurtle
-genpartslist LHead
-genpartslist LLeftforearm
-genpartslist LRightforearm
-genpartslist LLeftupperarm
-genpartslist LRightupperarm
-genpartslist LLeftleg
-genpartslist LRightleg
-genpartslist LLeg
-genpartslist LShoe
-genpartslist LTurtlehead
-
-TheTurtle =: whichTurtle 1
-TID =: ": 0
-HEADCOLOR =: LIME
-states =. 0&{ each state each;:'Position Heading Turtlecolor'
-'POSITION HEADING TURTLECOLOR' =: states
-POSITION =: POSITION * Step_scale
-makeanyTurtle RED
-anyTurtle RED
-
-TheTurtle =: whichTurtle 1
-TID =: ": 1
-HEADCOLOR =: BLACK
-states =. 1&{ each state each;:'Position Heading Turtlecolor'
-'POSITION HEADING TURTLECOLOR' =: states
-POSITION =: POSITION * Step_scale
-makeanyTurtle BLUE
-anyTurtle BLUE
-
-genpartslist Partsnames
-forearm makelist FOREARM ''
-upperarm  makelist UPPERARM ''
-torso  makelist TORSO ''
-shoulder  makelist SHOULDER ''
-neck  makelist NECK ''
-skirt  makelist SKIRT ''
-
-Headpoly =: ,: {.state 'Heading'  NB. needed for poly3 initialization
+  for_j.  turtles
+  do.
+    i =. j{turtles
+    TID =: ": i
+    leftArg drawsetup &:((i&{)each) <rightArg
+    TheTurtle =: whichTurtle  0&{,turtletype
+    makeanyTurtle TURTLECOLOR
+    anyTurtle TURTLECOLOR
+  end.
 )
 
-stereo_run =: 3 : 0
-NB. creates user's info for Eyes data
-''[".;._2 EyesTs NB. Gives two turtle samples
-
-NumTs =. #P0
-
-NB. initialize shell State database
-State0 =: State =: 0$~NumTs,#StateNames
-EyesTvalues state each BasicTnames
-EyeGazesAt =: 0 0 0,:0 0 0
-
-StereoFlag =: 1
-
-NB. initialize special user info
-heading =. ,"_1 allRot rfd Heading
-heading state 'Heading'
-State0 =: State 
-
-NB. initialize shell SC database
-NB. SC0 =: SC =: StateChange =: 0$~ NumTs,0,#StateChangeNames
-SC0 =: SC =: StateChange =: $. 0$~ NumTs,0,#StateChangeNames
-
-NB. initialize shell drawing database
-DrawPathList =: i. (#Eye),0 ,6++/#&> (<SN) aindex each ;:'Pencolor Pensize Penstyle'
-
-yw 0
-)
 
 NB.* initTurtleState v (ambivalent)
 NB. usage: [rows of (x,y) headings] initTStateBasic (no. of Ts)
@@ -2160,58 +2093,7 @@ if. (~:<.)y do.
   return. 
 end.
 
-glDeleteLists (>:PARTSSTART);#PARTS
 Delay =: 0  NB. initialize wd 'timer'
-gsetdefaults''
-Init''
-
-LTheTurtle =.  i. 0
-LHead =.  i. 0
-LLeftforearm =.  i. 0
-LRightforearm =.  i. 0
-LLeftupperarm =.  i. 0
-LRightupperarm =.  i. 0
-LTurtlehead =.  i. 0
-LLeftleg =.  i. 0
-LRightleg =.  i. 0
-LLeg =.  i. 0
-LShoe =.  i. 0
-
-for_j. i. y
-do.
-  LTheTurtle =. LTheTurtle,' '&, 'LTheTurtle',": j
-  LHead =. LHead,' '&, 'LHead',": j
-  LLeftforearm =. LLeftforearm,' '&, 'LLeftforearm',": j
-  LRightforearm =. LRightforearm,' '&, 'LRightforearm',": j
-  LLeftupperarm =. LLeftupperarm,' '&, 'LLeftupperarm',": j
-  LRightupperarm =. LRightupperarm,' '&, 'LRightupperarm',": j
-  LLeftleg =. LLeftleg,' '&, 'LLeftleg',": j
-  LRightleg =. LRightleg,' '&, 'LRightleg',": j
-  LLeg =. LLeg,' '&, 'LLeg',": j
-  LShoe =. LShoe,' '&, 'LShoe',": j
-  LTurtlehead =. LTurtlehead,' '&, 'LTurtlehead',": j
-end.
-
-(''"_) makelist LTurtlepath ''
-genpartslist LTheTurtle
-genpartslist LHead
-genpartslist LLeftforearm
-genpartslist LRightforearm
-genpartslist LLeftupperarm
-genpartslist LRightupperarm
-genpartslist LLeftleg
-genpartslist LRightleg
-genpartslist LLeg
-genpartslist LShoe
-genpartslist LTurtlehead
-
-genpartslist Partsnames
-forearm makelist FOREARM ''
-upperarm  makelist UPPERARM ''
-torso  makelist TORSO ''
-shoulder  makelist SHOULDER ''
-neck  makelist NECK ''
-skirt  makelist SKIRT ''
 
 NB. 3D eye information
 Pe0 =: 0 0 6
@@ -2256,21 +2138,8 @@ State0 =: State
 
 cs''
 glClear GL_COLOR_BUFFER_BIT
-paint''
-turtles =. i. |y
-heading =. (mfv0 state 'Heading')
-rightArg =.  heading
-leftArg =.  position;turtlecolor;turtletrait;turtletype
-
-for_j.  turtles
-do.
-  i =. j{turtles
-  TID =: ": i
-  leftArg drawsetup &:((i&{)each) <rightArg
-  TheTurtle =: whichTurtle  0&{,turtletype
-  makeanyTurtle TURTLECOLOR
-  anyTurtle TURTLECOLOR
-end.
+initLists y
+paintQ =: 1
 
 NB. create State Change shell
 SC0 =: SC =: StateChange =: 0$~ yy,0,#StateChangeNames NB. unsparse
@@ -2283,96 +2152,6 @@ yw 0
 StateNames;|: rnd State0
 )
 
-NB.* initStereoTurtleState v (ambivalent)
-NB. usage: [rows of (x,y) headings] initTStateBasic (no. of Ts)
-NB. eg. (2 3$ 0 90 0 0 45 0 ) iSTS 2  NB. create 2 identical turtles
-NB.           iSTS  4                 NB. create 4 identical turtles 
-NB.           iSTS _4                 NB. create 4 identical turtles 
-iSTS =: initStereoTurtleState =: verb define
-y iSTS~ 0 0 0 copies~|y
-:
-yy =. | y
-if. yy~:#x do. 
-  'The number of turtle headings must equal the number of turtles.'
-  return. 
-end.
-if. (~:<.)y do.
-  'Number of Turtles must be integer.' 
-  return. 
-end.
-
-Delay =: 0  NB. initialize wd 'timer'
-NB. 3D eye information
-Eye =: yy,>:yy            NB. add two turtles for the eyes
-eye =: Eye&{            NB. must always be changed after Eye
-yy =. 2+y
-Pe0 =: _10 0 1000,:10 0 1000
-StereoFlag =: 1
-
-NB. Most of the next values are dummy values
-NB.      until after the eyeto sets real values.
-He0 =: ,:~0 0 _90
-
-NB. initialize default State
-State =:  0$~yy,#StateNames
-(yy&# each BasicTvalues) state each BasicTnames
-(,:~0) stateEye 'Turtlestate'
-(BasicTnames) =: state each BasicTnames
-Position =: (y{.Position),Pe0
-Heading  =: (y{.x       ),He0
-(Blue,Red) stateEye 'Pencolor'
-(Blue,Red) stateEye 'Turtlecolor'
-EyeGazesAt =: 0 0 0,:0 0 0
-
-
-NB. create State Change shell
-NB. SC0 =: SC =: StateChange =: 0$~ yy,0,#StateChangeNames NB. unsparse
-SC0 =: SC =: StateChange =: $. 0$~  yy,0,#StateChangeNames NB. sparse
-
-NB. temporarily create these Draw databases (recreated below)
-DrawPathList =: i. (#Eye),0 ,6++/#&> (<SN) aindex each ;:'Pencolor Pensize Penstyle'
-EyeGazesAt =: 0 0 0,:0 0 0
-
-NB. initialize eyes
-EyeGazesAt eyeto Pe0
-Pe0 =: eye Position
-He0 =: eye Heading
-
-NB. initialize user info
-P0 =: Position =: (3&{."1 [ 200 tP y),Pe0
-H0 =: Heading =: x,He0
-
-NumTs =. #P0
-
-NB. convert user info to dbase format
-heading =. ,"_1 allRot rfd Heading
-position =. Position
-
-NB. revise default State
-(position;heading) state each ;:'Position Heading'
-
-NB. revise user info
-(BasicTnames) =: state each BasicTnames
-Position =: P0
-Heading =: H0
-traits =. ;:'Pencolor Penstate Turtlestate Turtleerase'
-((Red,Red );(0,:0);(0,:0);(0,:0)) stateEye each traits
-
-NB. keep copy of initial State
-State0 =: State 
-
-NB. create State Change shell
-NB. SC0 =: SC =: StateChange =: 0$~ yy,0,#StateChangeNames NB. unsparse
-SC0 =: SC =: StateChange =: $. 0$~  yy,0,#StateChangeNames NB. sparse
-
-NB. initialize shell drawing xdatabase
-DrawPathList =: i. (#Eye),0 ,6++/#&> (<SN) aindex each ;:'Pencolor Pensize Penstyle'
-
-cs''
-yw 0
-StateNames;|:rnd State0
-)
-
 NB. each part has an invisible space at the end
 Partsnames =: ;<@:}:@:toupper;. 2 noun define NB. (,&:>/)@:
 forearm 
@@ -2383,32 +2162,9 @@ shoulder
 neck 
 )
 
-0 : 0
-Need n of these
-NB. LTurtle
-TheTurtle
-head 
-leftforearm
-rightforearm
-rightupperarm 
-leftupperarm 
-rightleg 
-leftleg 
-leg 
-shoe
-turtlehead
-)
-
-more =: 0 : 0
-  leg 
-  rightforearm 
-  leftforearm 
-  shoe 
-  turtlehead 
-  TheTurtle 
-)
-
 cocurrent 'base'
 coinsert 'bmsturtle3'           NB. give system its own locale
 
-tgsj3D_run ''
+NB. tgsj3D_run ''
+smoutput 'If there is no graphics window, enter this to start:'
+smoutput '   tgsj3D_run '''''
