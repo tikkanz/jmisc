@@ -5,8 +5,7 @@ NB.  * arguments given as name-value pairs in 2-col table
 NB.  * allows list of first n args in expected order
 NB.  * verb user cannot define un-expected arg names
 
-NB. require 'pack'
-script_z_ '~system/main/pack.ijs'
+require 'pack'
 
 coclass 'pargs'
 
